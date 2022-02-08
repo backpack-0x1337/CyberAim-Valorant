@@ -1,35 +1,57 @@
-import json
-import os
 import time
-import cv2
-import mss.tools
-import numpy as np
-import math
-import keyboard
+
 import serial
-import torch
-import win32api
-import win32con
-import win32gui
-import win32ui
-from pynput.mouse import Listener
-
 import aimbotV2
+from queue import Queue
+from threading import Thread
 
 
-from pynput import mouse
 
-def on_click(x, y, button, pressed):
-    if button == mouse.Button.left:
-        print('{} at {}'.format('Pressed Left Click' if pressed else 'Released Left Click', (x, y)))
-        return False # Returning False if you need to stop the program when Left clicked.
-    else:
-        print('{} at {}'.format('Pressed Right Click' if pressed else 'Released Right Click', (x, y)))
+def move_cursor(arduino, x, y):
+    data = str(x) + ':' + str(y)
+    arduino.write(data.encode())
 
 
-while True:
-    listener = mouse.Listener(on_click=on_click)
-    listener.start()
-    listener.join()
-    print(1)
-    # continue
+
+
+def ArduinoThread(arduino_q):
+    print('Arduino is listening now')
+    arduino = serial.Serial('COM7', 115200, timeout=0)
+    # move_cursor(arduino, 100, 100)
+    while True:
+        print('asd')
+        if arduino_q.full():
+            x, y, stop = arduino_q.get()
+            ori_cur_pos = (0, 0)
+            path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
+            for i in range(stop):
+                move_cursor(arduino, path[0][i], path[1][i])
+                time.sleep(0.00001)
+            print('thread End')
+
+
+def main(arduino_q):
+    while True:
+        # print("product is running now")
+        if arduino_q.empty():
+            arduino_q.put((5, 5, 10))
+            print("product add to queue")
+
+
+if __name__ == '__main__':
+    thread_kill = False
+    # global arduino_q
+    # arduino_q = Queue(maxsize=0)
+    arduino_q = Queue(maxsize=1)
+    try:
+        worker = Thread(target=ArduinoThread, args=(arduino_q,))
+        worker.setDaemon(True)
+        worker.start()
+        # with concurrent.futures.ProcessPoolExecutor() as executor:
+        #     ArduinoT = executor.submit(ArduinoThread)
+
+        main(arduino_q)
+    except KeyboardInterrupt:
+        print("Thanks for using cyberAim!")
+        thread_kill = True
+# talk_to_arduino(100, 100, 10)

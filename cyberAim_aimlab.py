@@ -1,5 +1,4 @@
 import json
-import threading
 import time
 import cv2
 import numpy as np
@@ -11,18 +10,22 @@ import aimbotV2
 from capture_screen import grab_screen, sct, monitor
 from arduino import move_cursor
 from util import *
+from queue import Queue
+from threading import Thread
 
 ###################################/ SETTING /###########################################
 CONFIDENCE_THRESHOLD = 0.6
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
+# global SERIAL_PORT
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['shift', 'alt', 'ctrl']
-AIM_FOV = 50
+AIM_FOV = 100
 AIM_IGNORE_PIXEL = 10
-AIM_SMOOTH = 5
-PT_PATH = '../lib/aimlab-200.pt'
+AIM_SMOOTH = 7
+PT_PATH = 'lib/aimlab-200.pt'
 FORCE_RELOAD = False
+
 
 ##################################/ Function /##############################################
 
@@ -60,27 +63,49 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
-def talk_to_arduino(x, y, stop):
-    ori_cur_pos = (0, 0)
-    path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
-    for i in range(stop):
-        move_cursor(arduino, path[0][i], path[1][i])
-    time.sleep(0.001)
+def ArduinoThread():
+    arduino = serial.Serial('COM7', 115200, timeout=0)
+    # print('Arduino is listening now')
+    # time.sleep(10)
+    while True:
+        # print('Arduino is listening now')
+        # if arduino_q.full() is True:
+        #     print("full")
+            x, y, stop = arduino_q.get()
+            ori_cur_pos = (0, 0)
+            path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
+            for i in range(stop):
+                move_cursor(arduino, path[0][i], path[1][i])
+                time.sleep(0.000001)
+            # time.sleep(0.5)
+            arduino_q.get()
+            arduino_q.get()
+    print('thread End')
 
 
 ######################################/ Global Var /###############################################
-arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
-model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
-model.conf = CONFIDENCE_THRESHOLD
-model.max_det = MAX_DET
-mid_point_screen = int(ACTIVATION_RANGE / 2)
-# aim_position = 'ALL'  # 0 is both 1 is head 2 is body
-print("Welcome to CyberAim Have Fun!!")
-thread_flag = 'free'
+# arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
+# model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
+# model.conf = CONFIDENCE_THRESHOLD
+# model.max_det = MAX_DET
+# mid_point_screen = int(ACTIVATION_RANGE / 2)
+# # aim_position = 'ALL'  # 0 is both 1 is head 2 is body
+# print("Welcome to CyberAim Have Fun!!")
+# thread_flag = 'free'
+# arduino_q = Queue(maxsize=1)
+# thread_kill = False
 
 
 def main():
-    aim_position = 'ALL' # 0 is both 1 is head 2 is body
+
+    model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
+    model.conf = CONFIDENCE_THRESHOLD
+    model.max_det = MAX_DET
+    mid_point_screen = int(ACTIVATION_RANGE / 2)
+    aim_position = 'ALL'  # 0 is both 1 is head 2 is body
+
+
+    # print("Welcome to CyberAim")
     while True:
         start = time.time()
 
@@ -119,7 +144,8 @@ def main():
             X = get_center_cord(target_list[closestObject]['xmax'], target_list[closestObject]['xmin'])
             Y = get_center_cord(target_list[closestObject]['ymax'], target_list[closestObject]['ymin'])
 
-            # cv2.line(frame, (int(X), int(Y)), mid_point_screen, mid_point_screen, (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.line(frame, (int(X), int(Y)), (mid_point_screen, mid_point_screen), (0, 255, 0), 1, cv2.LINE_AA)
+
 
             cur_X = cur_Y = mid_point_screen
             difX = int(X - mid_point_screen)
@@ -129,16 +155,41 @@ def main():
                 pass
             else:
                 if (is_aim_key_pressed()) and closestObjectDistance < AIM_FOV:
-                    arduino_thread = threading.Thread(target=talk_to_arduino, args=[difX, difY, AIM_SMOOTH])
-                    arduino_thread.start()
+                    # arduino_thread = threading.Thread(target=talk_to_arduino, args=[difX, difY, AIM_SMOOTH])
+                    # arduino_thread.start()
+                    if arduino_q.empty() is True:
+                        arduino_q.put((difX, difY, AIM_SMOOTH))
 
         display_fps(frame, start)
         if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-    cv2.destroyAllWindows()
-    sct.close()
-    exit(0)
+            cv2.destroyAllWindows()
+            sct.close()
+            raise Exception
 
-
+arduino_q = Queue(maxsize=0)
 if __name__ == '__main__':
-    main()
+    # arduino_q = Queue(maxsize=0)
+    # aim_position = 'ALL'  # 0 is both 1 is head 2 is body
+    print("Welcome to CyberAim Have Fun!!")
+    # thread_kill = False
+
+    try:
+        # MainT = Thread(target=product, args=(arduino_q,))
+        # MainT.start()
+        ArduinoT = Thread(target=ArduinoThread)
+        ArduinoT.setDaemon(True)
+        ArduinoT.start()
+        # MainT.join()
+        main()
+
+        # product()
+    except KeyboardInterrupt:
+        print("Thanks for using cyberAim!")
+        cv2.destroyAllWindows()
+        sct.close()
+        # thread_kill = True
+    except Exception as e:
+        print('Error: ' + str(e))
+        cv2.destroyAllWindows()
+        sct.close()
+        thread_kill = True
