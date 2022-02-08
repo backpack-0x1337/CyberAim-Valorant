@@ -1,21 +1,35 @@
-
-# Importing Libraries
-import serial
+import json
+import os
 import time
+import cv2
+import mss.tools
+import numpy as np
+import math
+import keyboard
+import serial
+import torch
+import win32api
+import win32con
+import win32gui
+import win32ui
+from pynput.mouse import Listener
 
-arduino = serial.Serial(port='COM9', baudrate=115200, timeout=0)
+import aimbotV2
 
 
-def write_read(x):
-    arduino.write(bytes(x, 'utf-8'))
-    time.sleep(0.05)
-    data = arduino.readline()
-    return data
+from pynput import mouse
 
+def on_click(x, y, button, pressed):
+    if button == mouse.Button.left:
+        print('{} at {}'.format('Pressed Left Click' if pressed else 'Released Left Click', (x, y)))
+        return False # Returning False if you need to stop the program when Left clicked.
+    else:
+        print('{} at {}'.format('Pressed Right Click' if pressed else 'Released Right Click', (x, y)))
 
 
 while True:
-    num = input("Enter a number: ") # Taking input from user
-    value = write_read(num)
-    print(value) # printing the value
-
+    listener = mouse.Listener(on_click=on_click)
+    listener.start()
+    listener.join()
+    print(1)
+    # continue
