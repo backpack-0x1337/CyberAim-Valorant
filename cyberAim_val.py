@@ -20,23 +20,29 @@ ACTIVATION_RANGE = 414  # change this in capture_screen.py
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['shift', 'alt', 'ctrl']
-AIM_FOV = 100
+AIM_FOV = 50
 AIM_IGNORE_PIXEL = 10
-AIM_SMOOTH = 7
+AIM_SMOOTH = 4
 PT_PATH = 'lib/valorant-414-ss-train2.pt'
 FORCE_RELOAD = False
+ALWAYS_ON = True
 
 
 ##################################/ Function /##############################################
 
 
 def get_updated_aim_mode(aim_mode):
-    if keyboard.is_pressed('0'):
+    if keyboard.is_pressed('7'):
         aim_mode = "ALL"
-    elif keyboard.is_pressed('1'):
+    elif keyboard.is_pressed('8'):
         aim_mode = "enemyHead"
-    elif keyboard.is_pressed('2'):
+    elif keyboard.is_pressed('9'):
         aim_mode = "enemyBody"
+    elif keyboard.is_pressed('1'):
+        ALWAYS_ON = True
+    elif keyboard.is_pressed('3'):
+        ALWAYS_ON = False
+
     return aim_mode
 
 
@@ -78,7 +84,6 @@ def ArduinoThread():
             move_cursor(arduino, path[0][i], path[1][i])
             time.sleep(0.000001)
         # time.sleep(0.5)
-        arduino_q.get()
         arduino_q.get()
     # print('thread End')
 
@@ -137,10 +142,14 @@ def main():
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
+
+            # if keyboard.is_pressed('9'):
+            #     ALWAYS_ON = ALWAYS_ON * -1
+
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
             else:
-                if (is_aim_key_pressed()) and closestObjectDistance < AIM_FOV:
+                if ((is_aim_key_pressed()) and closestObjectDistance < AIM_FOV):
                     if arduino_q.empty() is True:
                         arduino_q.put((difX, difY, AIM_SMOOTH))
 

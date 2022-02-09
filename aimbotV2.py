@@ -57,12 +57,15 @@ def create_path(ori, dest, stop):
         # pre_cord_y = cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y
 
         if t == 1:
-            pre_cord_x = cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x
-            pre_cord_y = cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y
+            cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x
+            pre_cord_x += cord_diff_x
+            cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y
+            pre_cord_y += pre_cord_y + cord_diff_y
         else:
-            pre_cord_x = cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x + random.randint(1, 9) / 100
-            pre_cord_y = cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y + random.randint(1, 9) / 100
-
+            cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x + random.randint(1, 9) / 100
+            pre_cord_x += cord_diff_x
+            cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y + random.randint(1, 9) / 100
+            pre_cord_y += pre_cord_y + cord_diff_y
 
         x_path.append(cord_diff_x)
         y_path.append(cord_diff_y)
