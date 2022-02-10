@@ -12,6 +12,9 @@ from arduino import move_cursor
 from util import *
 from queue import Queue
 from threading import Thread
+from pynput.mouse import Listener
+from pynput import mouse
+from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
 CONFIDENCE_THRESHOLD = 0.6
@@ -21,11 +24,12 @@ SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['shift', 'alt', 'ctrl']
 AIM_FOV = 100
-AIM_IGNORE_PIXEL = 5
-AIM_SMOOTH = 5
+AIM_IGNORE_PIXEL = 2
+AIM_SMOOTH = 4
 PT_PATH = 'lib/valorant-414-ss-train2.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = True
+DISABLE_Y_TIME = 2
 
 
 ##################################/ Function /##############################################
@@ -34,15 +38,13 @@ ALWAYS_ON = True
 def get_updated_aim_mode(aim_mode):
     if keyboard.is_pressed('7'):
         aim_mode = "ALL"
+        print("AIM-MODE: {}".format(aim_mode))
     elif keyboard.is_pressed('8'):
         aim_mode = "enemyHead"
+        print("AIM-MODE: {}".format(aim_mode))
     elif keyboard.is_pressed('9'):
         aim_mode = "enemyBody"
-    elif keyboard.is_pressed('1'):
-        ALWAYS_ON = True
-    elif keyboard.is_pressed('3'):
-        ALWAYS_ON = False
-
+        print("AIM-MODE: {}".format(aim_mode))
     return aim_mode
 
 
@@ -69,34 +71,45 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
+def on_click(x, y, button, pressed):
+    print(x, y, button, pressed)
+
+
+def is_button_onclick(x, y, button, pressed):
+    current_mouse_status = pressed
+    # print(current_mouse_status)
+
+
+def clear_queue():
+    while not y_disable_q.empty():
+        y_disable_q.get()
+
+
 def ArduinoThread():
     arduino = serial.Serial('COM7', 115200, timeout=0)
-    # print('Arduino is listening now')
-    # time.sleep(10)
+
+    print('Arduino is listening now')
+
     while True:
-        # print('Arduino is listening now')
-        # if arduino_q.full() is True:
-        #     print("full")
         x, y, stop = arduino_q.get()
         ori_cur_pos = (0, 0)
         path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
         for i in range(stop):
             move_cursor(arduino, path[0][i], path[1][i])
             time.sleep(0.000001)
-        # time.sleep(0.5)
         arduino_q.get()
-    # print('thread End')
+        arduino_q.get()
 
 
 def main():
-
     model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
     model.conf = CONFIDENCE_THRESHOLD
     model.max_det = MAX_DET
     mid_point_screen = int(ACTIVATION_RANGE / 2)
     aim_position = 'ALL'  # 0 is both 1 is head 2 is body
+    prev_aim = False
 
-    print("Welcome to CyberAim")
+    print("Welcome to CyberAim Have Fun!!")
     while True:
         start = time.time()
 
@@ -137,34 +150,43 @@ def main():
 
             cv2.line(frame, (int(X), int(Y)), (mid_point_screen, mid_point_screen), (0, 255, 0), 1, cv2.LINE_AA)
 
-
             cur_X = cur_Y = mid_point_screen
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
+            if is_aim_key_pressed():
+                if prev_aim is True:
+                    difY = 0
+                else:
+                    prev_aim = True
+            else:
+                prev_aim = False
 
-            # if keyboard.is_pressed('9'):
-            #     ALWAYS_ON = ALWAYS_ON * -1
+
 
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
-            else:
-                if ((is_aim_key_pressed()) and closestObjectDistance < AIM_FOV):
-                    if arduino_q.empty() is True:
-                        arduino_q.put((difX, difY, AIM_SMOOTH))
 
+            elif is_aim_key_pressed() and closestObjectDistance < AIM_FOV:
+                # free_y_bool = True
+                if arduino_q.empty() is True:
+                    arduino_q.put((difX, difY, AIM_SMOOTH))
+
+            # if not is_aim_key_pressed():
+            #     prev_shot = False
         display_fps(frame, start)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             cv2.destroyAllWindows()
             sct.close()
             raise Exception
 
-arduino_q = Queue(maxsize=0)
+
+# arduino_q = Queue(maxsize=0)
+# arduino_q = Queue(maxsize=1)
+# y_disable_q = Queue(maxsize=1)
 if __name__ == '__main__':
-    # arduino_q = Queue(maxsize=0)
-    # aim_position = 'ALL'  # 0 is both 1 is head 2 is body
-    print("Welcome to CyberAim Have Fun!!")
-    # thread_kill = False
+    arduino_q = Queue(maxsize=1)
+    y_disable_q = Queue(maxsize=1)
 
     try:
         ArduinoT = Thread(target=ArduinoThread)
@@ -176,4 +198,4 @@ if __name__ == '__main__':
         print("Thanks for using cyberAim!")
         cv2.destroyAllWindows()
         sct.close()
-        thread_kill = True
+        exit(0)
