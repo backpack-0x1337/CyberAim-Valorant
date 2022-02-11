@@ -80,19 +80,34 @@ def is_button_onclick(x, y, button, pressed):
     # print(current_mouse_status)
 
 
-def clear_queue():
-    while not y_disable_q.empty():
-        y_disable_q.get()
-
-
 def ArduinoThread():
+    global y_disable_bool
     arduino = serial.Serial('COM7', 115200, timeout=0)
 
     print('Arduino is listening now')
-
+    prev_shots = 0
+    last_shot_time = time.time()
     while True:
         x, y, stop = arduino_q.get()
         ori_cur_pos = (0, 0)
+
+        if (time.time() - last_shot_time) > 1:
+            prev_shots = 0
+            last_shot_time = time.time()
+
+        if 5 <= prev_shots <= 20:
+            y = 0
+            prev_shots += 1
+            last_shot_time = time.time()
+        else:
+            prev_shots += 1
+
+
+        # print(time.time() - last_shot_time)
+        # print(prev_shots)
+        # print("\n")
+
+
         path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
         for i in range(stop):
             move_cursor(arduino, path[0][i], path[1][i])
@@ -108,6 +123,8 @@ def main():
     mid_point_screen = int(ACTIVATION_RANGE / 2)
     aim_position = 'ALL'  # 0 is both 1 is head 2 is body
     prev_aim = False
+    global y_disable_bool
+
 
     print("Welcome to CyberAim Have Fun!!")
     while True:
@@ -123,7 +140,6 @@ def main():
         cv2.imshow('CyberAim-AI', np.squeeze(results.render()))
         # num of enemy boxs
         enemyNum = len(target_list)
-
         if enemyNum == 0:
             pass
         else:
@@ -132,6 +148,9 @@ def main():
             closest = 1000
             closestObject = None
             closestObjectDistance = None
+
+
+
 
             # Cycle through results (enemies) and get the closest to the center of detection box
             for i in range(enemyNum):
@@ -154,21 +173,26 @@ def main():
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
-            if is_aim_key_pressed():
-                if prev_aim is True:
-                    difY = 0
-                else:
-                    prev_aim = True
-            else:
-                prev_aim = False
-
-
-
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
 
             elif is_aim_key_pressed() and closestObjectDistance < AIM_FOV:
+                #####/ Disable Y-axi###########################
                 # free_y_bool = True
+                # time_since_aiming = time.time() - disable_y_start_time
+                #
+                # if 0.5 <= time_since_aiming <= 1.5:
+                #     if disable_y_bool is not True:
+                #         disable_y_bool = True
+                #         disable_y_start_time = time.time()
+                #     y = 0 # if in time frame its 0 anyway
+                # else:
+                #     disable_y_bool = False
+                #     disable_y_start_time = time.time()
+                #
+                # if time_since_aiming >= 5:
+                #     disable_y_bool = True
+                    ###########################
                 if arduino_q.empty() is True:
                     arduino_q.put((difX, difY, AIM_SMOOTH))
 
@@ -186,7 +210,7 @@ def main():
 # y_disable_q = Queue(maxsize=1)
 if __name__ == '__main__':
     arduino_q = Queue(maxsize=1)
-    y_disable_q = Queue(maxsize=1)
+    y_disable_bool = False
 
     try:
         ArduinoT = Thread(target=ArduinoThread)
