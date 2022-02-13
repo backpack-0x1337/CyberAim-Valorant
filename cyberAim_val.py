@@ -17,7 +17,7 @@ from pynput import mouse
 from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.4
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
@@ -26,10 +26,11 @@ AIM_KEY = ['shift', 'alt', 'ctrl']
 AIM_FOV = 100
 AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
-PT_PATH = 'lib/valorant-414-ss-train2.pt'
+PT_PATH = 'lib/val-414-train3.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = True
 DISABLE_Y_TIME = 2
+DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
 
 
 ##################################/ Function /##############################################
@@ -82,21 +83,25 @@ def is_button_onclick(x, y, button, pressed):
 
 def ArduinoThread():
     global y_disable_bool
-    arduino = serial.Serial('COM7', 115200, timeout=0)
+    arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
     print('Arduino is listening now')
     prev_shots = 0
     last_shot_time = time.time()
+
     while True:
         x, y, stop = arduino_q.get()
         ori_cur_pos = (0, 0)
 
-        if (time.time() - last_shot_time) > 1:
+        if (time.time() - last_shot_time) > 0.8:
             prev_shots = 0
             last_shot_time = time.time()
 
+        # if 5 <= prev_shots <= 20:
         if 5 <= prev_shots <= 20:
-            y = 0
+            y = 0 # todo recoil
+            # y += 60
+            # # x -= 10
             prev_shots += 1
             last_shot_time = time.time()
         else:
@@ -111,7 +116,7 @@ def ArduinoThread():
         path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
         for i in range(stop):
             move_cursor(arduino, path[0][i], path[1][i])
-            time.sleep(0.000001)
+            time.sleep(0.00000001)
         arduino_q.get()
         arduino_q.get()
 
@@ -121,7 +126,7 @@ def main():
     model.conf = CONFIDENCE_THRESHOLD
     model.max_det = MAX_DET
     mid_point_screen = int(ACTIVATION_RANGE / 2)
-    aim_position = 'ALL'  # 0 is both 1 is head 2 is body
+    aim_position = DEFAULT_AIM_LOCATION  # 0 is both 1 is head 2 is body
     prev_aim = False
     global y_disable_bool
 
@@ -148,10 +153,6 @@ def main():
             closest = 1000
             closestObject = None
             closestObjectDistance = None
-
-
-
-
             # Cycle through results (enemies) and get the closest to the center of detection box
             for i in range(enemyNum):
                 X = get_center_cord(target_list[i]['xmax'], target_list[i]['xmin'])
@@ -177,22 +178,6 @@ def main():
                 pass
 
             elif is_aim_key_pressed() and closestObjectDistance < AIM_FOV:
-                #####/ Disable Y-axi###########################
-                # free_y_bool = True
-                # time_since_aiming = time.time() - disable_y_start_time
-                #
-                # if 0.5 <= time_since_aiming <= 1.5:
-                #     if disable_y_bool is not True:
-                #         disable_y_bool = True
-                #         disable_y_start_time = time.time()
-                #     y = 0 # if in time frame its 0 anyway
-                # else:
-                #     disable_y_bool = False
-                #     disable_y_start_time = time.time()
-                #
-                # if time_since_aiming >= 5:
-                #     disable_y_bool = True
-                    ###########################
                 if arduino_q.empty() is True:
                     arduino_q.put((difX, difY, AIM_SMOOTH))
 
