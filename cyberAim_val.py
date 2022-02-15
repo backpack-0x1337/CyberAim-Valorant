@@ -22,7 +22,7 @@ ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
-AIM_KEY = ['shift', 'alt', 'ctrl']
+AIM_KEY = ['alt', 'ctrl']
 AIM_FOV = 100
 AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
