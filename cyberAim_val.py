@@ -8,7 +8,7 @@ import serial
 import torch
 import aimbotV2
 from capture_screen import grab_screen, sct, monitor
-from arduino import move_cursor
+from arduino import *
 from util import *
 from queue import Queue
 from threading import Thread
@@ -22,7 +22,8 @@ ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
-AIM_KEY = ['alt', 'ctrl']
+AIM_KEY = ['ctrl']
+TRIGGER_KEY = ['alt']
 AIM_FOV = 100
 AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
@@ -64,6 +65,12 @@ def is_aim_key_pressed():
             return True
     return False
 
+def is_trigger_button_pressed():
+    for key in TRIGGER_KEY:
+        if keyboard.is_pressed(key):
+            return True
+    return False
+
 
 def display_fps(frame, start):
     end = time.time()
@@ -81,9 +88,11 @@ def is_button_onclick(x, y, button, pressed):
     # print(current_mouse_status)
 
 
+arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
+
+
 def ArduinoThread():
-    global y_disable_bool
-    arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
+    # arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
     print('Arduino is listening now')
     prev_shots = 0
@@ -99,7 +108,7 @@ def ArduinoThread():
 
         # if 5 <= prev_shots <= 20:
         if 5 <= prev_shots <= 20:
-            y = 0 # todo recoil
+            y = 0  # todo recoil
             # y += 60
             # # x -= 10
             prev_shots += 1
@@ -107,11 +116,9 @@ def ArduinoThread():
         else:
             prev_shots += 1
 
-
         # print(time.time() - last_shot_time)
         # print(prev_shots)
         # print("\n")
-
 
         path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
         for i in range(stop):
@@ -129,7 +136,6 @@ def main():
     aim_position = DEFAULT_AIM_LOCATION  # 0 is both 1 is head 2 is body
     prev_aim = False
     global y_disable_bool
-
 
     print("Welcome to CyberAim Have Fun!!")
     while True:
@@ -170,9 +176,12 @@ def main():
 
             cv2.line(frame, (int(X), int(Y)), (mid_point_screen, mid_point_screen), (0, 255, 0), 1, cv2.LINE_AA)
 
-            cur_X = cur_Y = mid_point_screen
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
+
+            if 0 < abs(difX) < 10 and 0 < abs(difY) < 10 and is_trigger_button_pressed():
+                print(difX)
+                send_trigger_signal(arduino)
 
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
