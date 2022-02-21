@@ -17,7 +17,7 @@ from pynput import mouse
 from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
-CONFIDENCE_THRESHOLD = 0.4
+CONFIDENCE_THRESHOLD = 0.5
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
@@ -28,10 +28,12 @@ AIM_FOV = 100
 AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
 PT_PATH = 'lib/val-414-train3.pt'
+# PT_PATH = "C:\Users\lihun\PycharmProjects\object-detection-yolov5\lib\val-414-train3.pt"
 FORCE_RELOAD = False
 ALWAYS_ON = True
 DISABLE_Y_TIME = 2
 DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
+DEBUG = False
 
 
 ##################################/ Function /##############################################
@@ -65,6 +67,7 @@ def is_aim_key_pressed():
             return True
     return False
 
+
 def is_trigger_button_pressed():
     for key in TRIGGER_KEY:
         if keyboard.is_pressed(key):
@@ -88,11 +91,11 @@ def is_button_onclick(x, y, button, pressed):
     # print(current_mouse_status)
 
 
-arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
+# arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
 
 def ArduinoThread():
-    # arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
+    arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
     print('Arduino is listening now')
     prev_shots = 0
@@ -102,12 +105,12 @@ def ArduinoThread():
         x, y, stop = arduino_q.get()
         ori_cur_pos = (0, 0)
 
-        if (time.time() - last_shot_time) > 0.8:
+        if (time.time() - last_shot_time) > 0.50:
             prev_shots = 0
             last_shot_time = time.time()
 
         # if 5 <= prev_shots <= 20:
-        if 5 <= prev_shots <= 20:
+        if 3 <= prev_shots <= 20:
             y = 0  # todo recoil
             # y += 60
             # # x -= 10
@@ -123,7 +126,7 @@ def ArduinoThread():
         path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
         for i in range(stop):
             move_cursor(arduino, path[0][i], path[1][i])
-            time.sleep(0.00000001)
+            time.sleep(0.00000000001)
         arduino_q.get()
         arduino_q.get()
 
@@ -134,7 +137,6 @@ def main():
     model.max_det = MAX_DET
     mid_point_screen = int(ACTIVATION_RANGE / 2)
     aim_position = DEFAULT_AIM_LOCATION  # 0 is both 1 is head 2 is body
-    prev_aim = False
     global y_disable_bool
 
     print("Welcome to CyberAim Have Fun!!")
@@ -147,8 +149,8 @@ def main():
         target_list = json.loads(results.pandas().xyxy[0].to_json(orient="records"))
         aim_position = get_updated_aim_mode(aim_position)
         target_list = get_scan_list_by_aim_position(aim_position, target_list)
-
-        cv2.imshow('CyberAim-AI', np.squeeze(results.render()))
+        if DEBUG:
+            cv2.imshow('CyberAim-AI', np.squeeze(results.render()))
         # num of enemy boxs
         enemyNum = len(target_list)
         if enemyNum == 0:
@@ -179,20 +181,20 @@ def main():
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
-            if 0 < abs(difX) < 10 and 0 < abs(difY) < 10 and is_trigger_button_pressed():
-                print(difX)
-                send_trigger_signal(arduino)
+            # if 0 < abs(difX) < 10 and 0 < abs(difY) < 10 and is_trigger_button_pressed():
+            #     send_trigger_signal(arduino)
 
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
 
-            elif is_aim_key_pressed() and closestObjectDistance < AIM_FOV:
+            elif (is_aim_key_pressed() and closestObjectDistance < AIM_FOV) or ALWAYS_ON:
                 if arduino_q.empty() is True:
                     arduino_q.put((difX, difY, AIM_SMOOTH))
 
             # if not is_aim_key_pressed():
             #     prev_shot = False
-        display_fps(frame, start)
+        if DEBUG:
+            display_fps(frame, start)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             cv2.destroyAllWindows()
             sct.close()
@@ -213,6 +215,7 @@ if __name__ == '__main__':
         main()
 
     except Exception as e:
+        print(e)
         print("Thanks for using cyberAim!")
         cv2.destroyAllWindows()
         sct.close()
