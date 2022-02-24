@@ -24,16 +24,17 @@ SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['ctrl']
 TRIGGER_KEY = ['alt']
-AIM_FOV = 100
+AIM_FOV = 50
 AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
 PT_PATH = 'lib/val-414-train3.pt'
 # PT_PATH = "C:\Users\lihun\PycharmProjects\object-detection-yolov5\lib\val-414-train3.pt"
 FORCE_RELOAD = False
-ALWAYS_ON = True
+ALWAYS_ON = False
 DISABLE_Y_TIME = 2
 DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
 DEBUG = False
+NEW_AIM_SMOOTH = 0.6
 
 
 ##################################/ Function /##############################################
@@ -123,12 +124,16 @@ def ArduinoThread():
         # print(prev_shots)
         # print("\n")
 
-        path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
-        for i in range(stop):
-            move_cursor(arduino, path[0][i], path[1][i])
-            time.sleep(0.00000000001)
-        arduino_q.get()
-        arduino_q.get()
+        # path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
+        # for i in range(stop):
+        #     move_cursor(arduino, path[0][i], path[1][i])
+        #     time.sleep(0.00000000001)
+        # arduino_q.get()
+        # arduino_q.get()
+
+        move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
+        # time.sleep(0.00000000001)
+
 
 
 def main():
