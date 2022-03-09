@@ -17,15 +17,15 @@ from pynput import mouse
 from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.3
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
-AIM_KEY = ['ctrl']
+AIM_KEY = ['p']
 TRIGGER_KEY = ['alt']
 AIM_FOV = 50
-AIM_IGNORE_PIXEL = 2
+AIM_IGNORE_PIXEL = 1
 AIM_SMOOTH = 4
 PT_PATH = 'lib/val-414-train3.pt'
 # PT_PATH = "C:\Users\lihun\PycharmProjects\object-detection-yolov5\lib\val-414-train3.pt"
@@ -83,13 +83,13 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
-def on_click(x, y, button, pressed):
-    print(x, y, button, pressed)
-
-
-def is_button_onclick(x, y, button, pressed):
-    current_mouse_status = pressed
-    # print(current_mouse_status)
+# def on_click(x, y, button, pressed):
+#     print(x, y, button, pressed)
+#
+#
+# def is_button_onclick(x, y, button, pressed):
+#     current_mouse_status = pressed
+#     # print(current_mouse_status)
 
 
 # arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
@@ -103,23 +103,27 @@ def ArduinoThread():
     last_shot_time = time.time()
 
     while True:
-        x, y, stop = arduino_q.get()
-        ori_cur_pos = (0, 0)
+        x, y, stop, mode = arduino_q.get()
 
-        if (time.time() - last_shot_time) > 0.50:
+        if mode == 'trigger':
+            send_trigger_signal(arduino)
+            continue
+
+        if (time.time() - last_shot_time) > 0.5:
             prev_shots = 0
             last_shot_time = time.time()
 
         # if 5 <= prev_shots <= 20:
-        if 3 <= prev_shots <= 20:
+        if 10 <= prev_shots <= 30:
             y = 0  # todo recoil
-            # y += 60
-            # # x -= 10
             prev_shots += 1
             last_shot_time = time.time()
+        elif prev_shots > 30:
+            last_shot_time = 0
         else:
             prev_shots += 1
 
+        move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
         # print(time.time() - last_shot_time)
         # print(prev_shots)
         # print("\n")
@@ -131,7 +135,7 @@ def ArduinoThread():
         # arduino_q.get()
         # arduino_q.get()
 
-        move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
+        # move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
         # time.sleep(0.00000000001)
 
 
@@ -187,14 +191,16 @@ def main():
             difY = int(Y - mid_point_screen)
 
             # if 0 < abs(difX) < 10 and 0 < abs(difY) < 10 and is_trigger_button_pressed():
-            #     send_trigger_signal(arduino)
+            #     # Emptying the queue first make sure the next action is shoot
+            #     arduino_q.put((difX, difY, AIM_SMOOTH, 'trigger'))
+            #     continue
 
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
 
             elif (is_aim_key_pressed() and closestObjectDistance < AIM_FOV) or ALWAYS_ON:
-                if arduino_q.empty() is True:
-                    arduino_q.put((difX, difY, AIM_SMOOTH))
+                # if arduino_q.empty() is True:
+                arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
 
             # if not is_aim_key_pressed():
             #     prev_shot = False
