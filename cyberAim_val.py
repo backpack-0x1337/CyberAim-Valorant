@@ -24,7 +24,7 @@ SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['p']
 TRIGGER_KEY = ['alt']
-AIM_FOV = 50
+AIM_FOV = 36
 AIM_IGNORE_PIXEL = 1
 AIM_SMOOTH = 4
 PT_PATH = 'lib/val-414-train3.pt'
@@ -32,9 +32,9 @@ PT_PATH = 'lib/val-414-train3.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = False
 DISABLE_Y_TIME = 2
-DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
+DEFAULT_AIM_LOCATION = 'ALL'  # 0 is both 1 is head 2 is body
 DEBUG = False
-NEW_AIM_SMOOTH = 0.6
+NEW_AIM_SMOOTH = 1
 
 
 ##################################/ Function /##############################################
