@@ -24,12 +24,12 @@ SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['p']
 TRIGGER_KEY = ['alt']
-AIM_FOV = 36
-AIM_IGNORE_PIXEL = 1
+AIM_FOV = 50
+AIM_IGNORE_PIXEL = 2
 AIM_SMOOTH = 4
 PT_PATH = 'lib/val-414-train3.pt'
 # PT_PATH = "C:\Users\lihun\PycharmProjects\object-detection-yolov5\lib\val-414-train3.pt"
-FORCE_RELOAD = False
+FORCE_RELOAD = True
 ALWAYS_ON = False
 DISABLE_Y_TIME = 2
 DEFAULT_AIM_LOCATION = 'ALL'  # 0 is both 1 is head 2 is body
@@ -83,16 +83,6 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
-# def on_click(x, y, button, pressed):
-#     print(x, y, button, pressed)
-#
-#
-# def is_button_onclick(x, y, button, pressed):
-#     current_mouse_status = pressed
-#     # print(current_mouse_status)
-
-
-# arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
 
 def ArduinoThread():
@@ -114,7 +104,7 @@ def ArduinoThread():
             last_shot_time = time.time()
 
         # if 5 <= prev_shots <= 20:
-        if 10 <= prev_shots <= 30:
+        if 9 <= prev_shots <= 30:
             y = 0  # todo recoil
             prev_shots += 1
             last_shot_time = time.time()
