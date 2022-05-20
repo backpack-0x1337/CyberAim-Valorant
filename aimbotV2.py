@@ -62,21 +62,21 @@ def create_path(ori, dest, stop):
             cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y
             pre_cord_y += cord_diff_y
         else:
-            cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x + random.randint(1, 9) / 100
+            cord_diff_x = spiral_function(x_ori, middle_x, x_dest, t) - pre_cord_x
             pre_cord_x += cord_diff_x
-            cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y + random.randint(1, 9) / 100
+            cord_diff_y = spiral_function(y_ori, middle_y, y_dest, t) - pre_cord_y
             pre_cord_y += cord_diff_y
 
-        x_path.append(cord_diff_x)
-        y_path.append(cord_diff_y)
+        x_path.append(pre_cord_x)
+        y_path.append(pre_cord_y)
 
     # plt.scatter(x_path, y_path)
     # plt.show()
     return x_path, y_path
 
 
-# create_path((0, 0), (10, 0), 10)
+# create_path((1, 0), (10, 3), 50)
 
-
+#
 # print(create_path((0, 0), (12, 23), 10)[0][1])
 # print(straight_path((0, 0), (100, 100), 10)[0][1])
