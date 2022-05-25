@@ -8,6 +8,7 @@ import mss.tools
 
 
 ACTIVATION_RANGE = 414
+# ACTIVATION_RANGE = 828
 
 def grab_screen(region=None):
     hwin = win32gui.GetDesktopWindow()

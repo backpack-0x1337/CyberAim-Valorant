@@ -12,29 +12,31 @@ from arduino import *
 from util import *
 from queue import Queue
 from threading import Thread
-from pynput.mouse import Listener
-from pynput import mouse
-from mouse import mouseObj
+
+# from pynput.mouse import Listener
+# from pynput import mouse
+# from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
-CONFIDENCE_THRESHOLD = 0.3
+CONFIDENCE_THRESHOLD = 0.5
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
 MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['p']
 TRIGGER_KEY = ['alt']
-AIM_FOV = 50
-AIM_IGNORE_PIXEL = 2
-AIM_SMOOTH = 4
-PT_PATH = 'lib/val-414-train3.pt'
-# PT_PATH = "C:\Users\lihun\PycharmProjects\object-detection-yolov5\lib\val-414-train3.pt"
-FORCE_RELOAD = True
+AIM_FOV = 200
+AIM_IGNORE_PIXEL = 1
+AIM_SMOOTH = 6
+PT_PATH = 'lib/val414-n.pt'
+# PT_PATH = 'lib/val-414-train3.pt'
+# PT_RE_PATH = 'lib/reinforce-model1800.pt'
+FORCE_RELOAD = False
 ALWAYS_ON = False
 DISABLE_Y_TIME = 2
-DEFAULT_AIM_LOCATION = 'ALL'  # 0 is both 1 is head 2 is body
-DEBUG = False
-NEW_AIM_SMOOTH = 1
+DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
+DEBUG = True
+MOVEMENT_MAX_PIXEL = 15
 
 
 ##################################/ Function /##############################################
@@ -83,71 +85,35 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
-
-
 def ArduinoThread():
     arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
     print('Arduino is listening now')
-    prev_shots = 0
-    last_shot_time = time.time()
-
     while True:
         x, y, stop, mode = arduino_q.get()
-
-        if mode == 'trigger':
-            send_trigger_signal(arduino)
-            continue
-
-        if (time.time() - last_shot_time) > 0.5:
-            prev_shots = 0
-            last_shot_time = time.time()
-
-        # if 5 <= prev_shots <= 20:
-        if 9 <= prev_shots <= 30:
-            y = 0  # todo recoil
-            prev_shots += 1
-            last_shot_time = time.time()
-        elif prev_shots > 30:
-            last_shot_time = 0
-        else:
-            prev_shots += 1
-
-        move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
-        # print(time.time() - last_shot_time)
-        # print(prev_shots)
-        # print("\n")
-
-        # path = aimbotV2.create_path(ori_cur_pos, (x, y), stop)
-        # for i in range(stop):
-        #     move_cursor(arduino, path[0][i], path[1][i])
-        #     time.sleep(0.00000000001)
-        # arduino_q.get()
-        # arduino_q.get()
-
-        # move_cursor(arduino, x * NEW_AIM_SMOOTH, y * NEW_AIM_SMOOTH)
-        # time.sleep(0.00000000001)
-
+        path_point = 10
+        path = aimbotV2.create_path((0, 0), (x, y), path_point)
+        move_x, move_y = path[0][stop], path[1][stop]
+        # print(move_x, move_y)
+        move_cursor(arduino, move_x, move_y)
 
 
 def main():
     model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
     model.conf = CONFIDENCE_THRESHOLD
     model.max_det = MAX_DET
+    model.classes = 1 # head detection only
     mid_point_screen = int(ACTIVATION_RANGE / 2)
     aim_position = DEFAULT_AIM_LOCATION  # 0 is both 1 is head 2 is body
-    global y_disable_bool
 
     print("Welcome to CyberAim Have Fun!!")
     while True:
         start = time.time()
-
         frame = np.array(grab_screen(region=monitor))
-
         results = model(frame)
         target_list = json.loads(results.pandas().xyxy[0].to_json(orient="records"))
-        aim_position = get_updated_aim_mode(aim_position)
-        target_list = get_scan_list_by_aim_position(aim_position, target_list)
+        # aim_position = get_updated_aim_mode(aim_position)
+        # target_list = get_scan_list_by_aim_position(aim_position, target_list)
         if DEBUG:
             cv2.imshow('CyberAim-AI', np.squeeze(results.render()))
         # num of enemy boxs
@@ -180,20 +146,24 @@ def main():
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
-            # if 0 < abs(difX) < 10 and 0 < abs(difY) < 10 and is_trigger_button_pressed():
-            #     # Emptying the queue first make sure the next action is shoot
-            #     arduino_q.put((difX, difY, AIM_SMOOTH, 'trigger'))
-            #     continue
-
             if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
                 pass
 
             elif (is_aim_key_pressed() and closestObjectDistance < AIM_FOV) or ALWAYS_ON:
-                # if arduino_q.empty() is True:
-                arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
+                while not arduino_q.empty():  # empty the list so we can update it
+                    arduino_q.get()
+                # print(f"X,Y:{difX} {difY}")
 
-            # if not is_aim_key_pressed():
-            #     prev_shot = False
+                if closestObjectDistance < 30:
+                    # print(f"close distance:{closestObjectDistance}")
+                    arduino_q.put((difX, difY, 9, 'aimbot'))
+                else:
+                    arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
+                # print(f"close distance:{closestObjectDistance}")
+                while not arduino_q.empty():
+                    pass
+                print(time.time() - start)
+
         if DEBUG:
             display_fps(frame, start)
         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -206,14 +176,22 @@ def main():
 # arduino_q = Queue(maxsize=1)
 # y_disable_q = Queue(maxsize=1)
 if __name__ == '__main__':
+    # arduino = serial.Serial(SERIAL_PORT, 230400, timeout=0)
+    # start_time = time.time()
+    # for i in range(10):
+    #     print(time.time() - start_time)
+    #     move_cursor(arduino, 10, 10)
+    #
+    #     time.sleep(0.00000001)
     arduino_q = Queue(maxsize=1)
-    y_disable_bool = False
+    # y_disable_bool = False
 
     try:
         ArduinoT = Thread(target=ArduinoThread)
         ArduinoT.setDaemon(True)
         ArduinoT.start()
         main()
+
 
     except Exception as e:
         print(e)
