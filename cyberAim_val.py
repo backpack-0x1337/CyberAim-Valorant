@@ -18,7 +18,7 @@ from threading import Thread
 # from mouse import mouseObj
 
 ###################################/ SETTING /###########################################
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.4
 ACTIVATION_RANGE = 414  # change this in capture_screen.py
 # global SERIAL_PORT
 SERIAL_PORT = 'COM7'
@@ -26,18 +26,17 @@ MAX_DET = 10  # 5 body and 5 head
 AIM_KEY = ['p']
 TRIGGER_KEY = ['alt']
 AIM_FOV = 200
-AIM_IGNORE_PIXEL = 1
-AIM_SMOOTH = 6
+AIM_IGNORE_PIXEL = 5
+AIM_SMOOTH = 5
 PT_PATH = 'lib/val414-n.pt'
 # PT_PATH = 'lib/val-414-train3.pt'
 # PT_RE_PATH = 'lib/reinforce-model1800.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = False
-DISABLE_Y_TIME = 2
 DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
 DEBUG = True
-MOVEMENT_MAX_PIXEL = 15
-
+# MOVEMENT_MAX_PIXEL = 15
+TRIGGER_PIXEL = 5
 
 ##################################/ Function /##############################################
 
@@ -90,12 +89,18 @@ def ArduinoThread():
 
     print('Arduino is listening now')
     while True:
+        start = time.time()
+
         x, y, stop, mode = arduino_q.get()
-        path_point = 10
-        path = aimbotV2.create_path((0, 0), (x, y), path_point)
-        move_x, move_y = path[0][stop], path[1][stop]
-        # print(move_x, move_y)
+        if mode == "trigger":
+            send_trigger_signal(arduino)
+            continue
+        # path = aimbotV2.create_path((0, 0), (x, y), stop)
+        # move_x, move_y = path[0][1], path[1][1]
+        # move_x, move_y = aimbotV2.create_path_new((0, 0), (x, y), stop)
+        move_x, move_y = x / stop, y / stop
         move_cursor(arduino, move_x, move_y)
+        print(time.time() - start)
 
 
 def main():
@@ -140,29 +145,34 @@ def main():
 
             X = get_center_cord(target_list[closestObject]['xmax'], target_list[closestObject]['xmin'])
             Y = get_center_cord(target_list[closestObject]['ymax'], target_list[closestObject]['ymin'])
-
+            targetSize_x = (target_list[closestObject]['xmax'] - target_list[closestObject]['xmin']) * 0.8
+            targetSize_y = (target_list[closestObject]['ymax'] - target_list[closestObject]['ymin']) * 0.8
             cv2.line(frame, (int(X), int(Y)), (mid_point_screen, mid_point_screen), (0, 255, 0), 1, cv2.LINE_AA)
 
             difX = int(X - mid_point_screen)
             difY = int(Y - mid_point_screen)
 
-            if abs(difX) < AIM_IGNORE_PIXEL and abs(difY) < AIM_IGNORE_PIXEL:
+            if is_trigger_button_pressed() and abs(difX) < TRIGGER_PIXEL and abs(difY) < TRIGGER_PIXEL:
+                # print(targetSize)
+                arduino_q.put((0, 0, 2, 'trigger'))
+                continue
+
+            if abs(difX) < targetSize_x and abs(difY) < targetSize_y:
                 pass
 
             elif (is_aim_key_pressed() and closestObjectDistance < AIM_FOV) or ALWAYS_ON:
-                while not arduino_q.empty():  # empty the list so we can update it
-                    arduino_q.get()
-                # print(f"X,Y:{difX} {difY}")
+                # while not arduino_q.empty():  # empty the list so we can update it
+                #     arduino_q.get()
 
-                if closestObjectDistance < 30:
-                    # print(f"close distance:{closestObjectDistance}")
-                    arduino_q.put((difX, difY, 9, 'aimbot'))
+                if closestObjectDistance < 70:
+                    arduino_q.put((difX, difY, 1, 'aimbot'))
+                    # arduino_q.put((0, 0, 2, 'trigger'))
+                    # arduino_q.put((0, 0, 2, 'trigger'))
                 else:
                     arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
-                # print(f"close distance:{closestObjectDistance}")
-                while not arduino_q.empty():
-                    pass
-                print(time.time() - start)
+                # while not arduino_q.empty():
+                #     pass
+                # print(time.time() - start)
 
         if DEBUG:
             display_fps(frame, start)
@@ -176,22 +186,12 @@ def main():
 # arduino_q = Queue(maxsize=1)
 # y_disable_q = Queue(maxsize=1)
 if __name__ == '__main__':
-    # arduino = serial.Serial(SERIAL_PORT, 230400, timeout=0)
-    # start_time = time.time()
-    # for i in range(10):
-    #     print(time.time() - start_time)
-    #     move_cursor(arduino, 10, 10)
-    #
-    #     time.sleep(0.00000001)
     arduino_q = Queue(maxsize=1)
-    # y_disable_bool = False
-
     try:
         ArduinoT = Thread(target=ArduinoThread)
         ArduinoT.setDaemon(True)
         ArduinoT.start()
         main()
-
 
     except Exception as e:
         print(e)

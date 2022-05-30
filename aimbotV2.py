@@ -34,6 +34,11 @@ def straight_path(ori, dest, stop):
     return x_path, y_path
 
 
+# def create_path_new(ori, dest, stop):
+#     lengthX = dest[0] - ori[0]
+#     lengthY = dest[1] - ori[1]
+#     ran = random.randint(1, 3)
+#     return (lengthX / stop) + ran, (lengthY / stop) + ran
 
 def create_path(ori, dest, stop):
     time_range = np.linspace(0, 1, stop)
