@@ -26,11 +26,9 @@ class mouseObj:
         else:
             self.start_time = 0
 
-
     def move_cursor(self, x, y):
         data = str(x) + ':' + str(y)
         self.arduino.write(data.encode())
 
     def get_mouse_status(self):
         return self.current_mouse_status
-

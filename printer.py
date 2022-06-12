@@ -6,6 +6,7 @@ import math
 import keyboard
 import serial
 import torch
+import pydirectinput
 import aimbotV2
 from capture_screen import grab_screen, sct, monitor
 from arduino import *
@@ -154,7 +155,7 @@ def main():
 
             if is_trigger_button_pressed() and abs(difX) < TRIGGER_PIXEL and abs(difY) < TRIGGER_PIXEL:
                 # print(targetSize)
-                arduino_q.put((0, 0, 2, 'trigger'))
+                # arduino_q.put((0, 0, 2, 'trigger'))
                 continue
 
             if abs(difX) < targetSize_x and abs(difY) < targetSize_y:
@@ -165,11 +166,13 @@ def main():
                 #     arduino_q.get()
 
                 if closestObjectDistance < MAGNET_PIXEL:
-                    arduino_q.put((difX, difY, 1, 'aimbot'))
+                    pydirectinput.move(difX/10, difY/10)
+                    # arduino_q.put((difX, difY, 1, 'aimbot'))
                     # arduino_q.put((0, 0, 2, 'trigger'))
                     # arduino_q.put((0, 0, 2, 'trigger'))
                 else:
-                    arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
+                    pydirectinput.move(difX, difY)
+                    # arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
                 # while not arduino_q.empty():
                 #     pass
                 # print(time.time() - start)
@@ -188,9 +191,9 @@ def main():
 if __name__ == '__main__':
     arduino_q = Queue(maxsize=1)
     try:
-        ArduinoT = Thread(target=ArduinoThread)
-        ArduinoT.setDaemon(True)
-        ArduinoT.start()
+        # ArduinoT = Thread(target=ArduinoThread)
+        # ArduinoT.setDaemon(True)
+        # ArduinoT.start()
         main()
 
     except Exception as e:
