@@ -33,7 +33,7 @@ def recoil_master():
         if mouse_release():
             firstShotTime = None
             shotCount = 0
-            #todo continue?
+            continue
 
         if not mouse_pressed():
             time.sleep(1)
