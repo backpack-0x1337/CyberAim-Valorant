@@ -1,23 +1,23 @@
 import time
 
 # import serial
-import aimbotV2
 from queue import Queue
 from threading import Thread
-from aimbotV2 import *
 # from pynput.mouse import Listener
 # from pynput import mouse
 # from pynput.mouse import Button, Controller
 # from mouse import mouseObj
+import keyboard
 import win32api
 import logging
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(levelname)s - %(message)s",
                     handlers=[
-                        logging.FileHandler("logging/recoil_m.log"),
+                        logging.FileHandler("logs/recoil_m.log"),
                         logging.StreamHandler()
                     ])
+
 
 # https://github.com/gggfreak2003/PyHook3/blob/master/example.py
 
@@ -27,43 +27,52 @@ class Weapon:
         self.sprayPattern = sprayPattern
         self.rateOfFire = rateOfFire
 
-    def get_next_correction(self):
-        return 0, 0
+    def get_correction_by_shots(self, shotNum):
+        if shotNum >= len(self.sprayPattern):
+            shotNum = len(self.sprayPattern) - 1
+        return self.sprayPattern[shotNum]
+
+
+NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
+Vandal = Weapon('Vandal', [(0, 0), (50, 0), (50, 0), (50, 0), (50, 0)], rateOfFire=109)
 
 
 def recoil_master():
     firstShotTime = None
     shotCount = 0
-
+    weapon = NoWeapon
     while True:
-        vandal = Weapon('Vandal', [(0, 0), (10, 0), (10, 0), (10, 0), (10, 0)], rateOfFire=109)
-
+        if keyboard.is_pressed('!'):
+            if weapon == NoWeapon:
+                weapon = Vandal
+            else:
+                weapon = NoWeapon
+            logging.info(f'\t[RM] Weapon: {weapon.name}')
         if win32api.GetAsyncKeyState(0x01) & 0x8000 == 0:
-            print('LB Not Pressing')
+            # if not left-click
+            logging.debug('[RM] LB Not Pressing')
             firstShotTime = None
             shotCount = 0
-            time.sleep(1)
+            time.sleep(0.5)
             continue
 
         if win32api.GetAsyncKeyState(0x01) & 0x8000 > 0:
-            print('LB Pressing')
-            time.sleep(1)
+            # if left-click
+            logging.debug('[RM] LB Pressing')
+            time.sleep(0.5)
 
         # Main Loop mouse button is clicked
-
         # First shot register time
         if firstShotTime is None:
-            # print('')
             firstShotTime = time.time_ns()
             shotCount = 1
             continue
 
         # ShotTime is not None
         timeSinceFirstShot = (time.time_ns() - firstShotTime) // 1000000
-        print(f'timeSinceFirstShot:{timeSinceFirstShot}, Shots: {shotCount}')
+        logging.debug(f'[RM]timeSinceFirstShot:{timeSinceFirstShot}, Shots: {shotCount}')
         # if it's new shot time
-        if timeSinceFirstShot / vandal.rateOfFire > shotCount:
-
+        if timeSinceFirstShot / weapon.rateOfFire > shotCount:
             shotCount += 1
 
             # Empty the recoil var
@@ -71,22 +80,29 @@ def recoil_master():
                 recoilCorrection.get()
 
             # Put the recoil correction for next bullet
-            try:
-                newRecoilCorr = vandal.sprayPattern[shotCount]
-            except IndexError:
-                newRecoilCorr = vandal.sprayPattern[-1]
+            newRecoilCorr = weapon.get_correction_by_shots(shotCount)
 
             recoilCorrection.put(newRecoilCorr)
-            print(f'RECOIL UPDATED {newRecoilCorr}')
+            logging.info(f'\t[RM]RECOIL UPDATED {newRecoilCorr}')
         else:
-            print(f'RECOIL UNCHANGED')
-            if not recoilCorrection.full():
-                recoilCor = vandal.sprayPattern[shotCount]
-                recoilCorrection.put(recoilCor)
+            logging.info(f'\t[RM]RECOIL UNCHANGED')
+            recoilCor = weapon.get_correction_by_shots(shotCount)
+            recoilCorrection.put(recoilCor)
 
 
 def main():
-    pass
+    health = 100
+    while True:
+        if not recoilCorrection.empty():
+            damage = recoilCorrection.get()[0]
+        else:
+            damage = 0
+        health -= damage
+        logging.info(f'\t\t[MAIN]Health: {health} Taken Damage: {damage}')
+        if health < 0:
+            print('END GAME')
+            break
+        time.sleep(0.5)
 
 
 if __name__ == '__main__':
