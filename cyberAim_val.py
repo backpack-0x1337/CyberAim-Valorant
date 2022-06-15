@@ -6,10 +6,10 @@ import math
 import keyboard
 import serial
 import torch
-import aimbotV2
-from capture_screen import grab_screen, sct, monitor
-from arduino import *
-from util import *
+import utils.aimbotV2
+from utils.capture_screen import grab_screen, sct, monitor
+from utils.arduino import *
+from utils.util import *
 from queue import Queue
 from threading import Thread
 
