@@ -7,12 +7,14 @@ import keyboard
 import serial
 import torch
 import logging
-import utils.aimbotV2
-from utils.capture_screen import grab_screen, sct, monitor
-from utils.arduino import *
-from utils.util import *
+import win32api
+import tools.aimbotV2
+from tools.capture_screen import grab_screen, sct, monitor
+from tools.arduino import *
+from tools.util import *
 from queue import Queue
 from threading import Thread
+from recoil_test import recoil_master, Weapon
 
 # from pynput.mouse import Listener
 # from pynput import mouse
@@ -44,12 +46,27 @@ if DEBUG is True:
 else:
     loggingStatus = logging.INFO
 
-logging.basicConfig(level=loggingStatus,
-                    format="%(asctime)s - %(levelname)s - %(message)s",
-                    handlers=[
-                        logging.FileHandler("logs/recoil_m.log"),
-                        logging.StreamHandler()
-                    ])
+# logging.basicConfig(level=loggingStatus,
+#                     format="%(asctime)s - %(levelname)s - %(message)s",
+#                     handlers=[
+#                         logging.FileHandler("logs/recoil_m.log"),
+#                         logging.StreamHandler()
+#                     ])
+
+loggar = logging.getLogger(__name__)
+loggar.level = loggingStatus
+
+handler = logging.FileHandler("logs/recoil_m.log")
+handler2 = logging.StreamHandler()
+
+handler.setLevel(loggingStatus)
+handler2.setLevel(loggingStatus)
+
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+handler2.setFormatter(formatter)
+loggar.addHandler(handler)
+loggar.addHandler(handler2)
 
 
 ##################################/ Function /##############################################
@@ -98,26 +115,8 @@ def display_fps(frame, start):
     cv2.imshow("CyberAim-AI", frame)
 
 
-def ArduinoThread():
-    arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
-    logging.debug('Arduino is listening now')
-    while True:
-        start = time.time()
-
-        x, y, stop, mode = arduino_q.get()
-        if mode == "trigger":
-            send_trigger_signal(arduino)
-            continue
-        # path = aimbotV2.create_path((0, 0), (x, y), stop)
-        # move_x, move_y = path[0][1], path[1][1]
-        # move_x, move_y = aimbotV2.create_path_new((0, 0), (x, y), stop)
-        move_x, move_y = x / stop, y / stop
-        move_cursor(arduino, move_x, move_y)
-        print(time.time() - start)
-
-
-def main():
+def object_detection(arduino_q):
     model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
     model.conf = CONFIDENCE_THRESHOLD
     model.max_det = MAX_DET
@@ -169,6 +168,7 @@ def main():
             if is_trigger_button_pressed() and abs(difX) < TRIGGER_PIXEL and abs(difY) < TRIGGER_PIXEL:
                 # print(targetSize)
                 arduino_q.put((0, 0, 2, 'trigger'))
+                loggar.debug('[MAIN] Sent Trigger Signal')
                 continue
 
             if abs(difX) < targetSize_x and abs(difY) < targetSize_y:
@@ -177,13 +177,22 @@ def main():
             elif (is_aim_key_pressed() and closestObjectDistance < AIM_FOV) or ALWAYS_ON:
                 # while not arduino_q.empty():  # empty the list so we can update it
                 #     arduino_q.get()
+                # if recoilCorrection.full():
+                #     corr_x, corr_y = recoilCorrection.get()
+                # else:
+                #     corr_x, corr_y = 0, 0
+                #     logger.warning("[MAIN] Recoil Queue is empty")
 
                 if closestObjectDistance < MAGNET_PIXEL:
                     arduino_q.put((difX, difY, 1, 'aimbot'))
-                    # arduino_q.put((0, 0, 2, 'trigger'))
-                    # arduino_q.put((0, 0, 2, 'trigger'))
+                    loggar.debug(
+                        f'[MAIN] AIMBOT put to Queue Cords:{difX, difY}, Smooth{1},'
+                        f' Target Distance:{closestObjectDistance}')
                 else:
                     arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
+                    loggar.debug(
+                        f'[MAIN] AIMBOT put to Queue Cords:{difX, difY} Smooth{AIM_SMOOTH},'
+                        f' Target Distance:{closestObjectDistance}')
 
         if DEBUG:
             display_fps(frame, start)
@@ -193,13 +202,19 @@ def main():
             raise Exception
 
 
-if __name__ == '__main__':
-    arduino_q = Queue(maxsize=1)
+def main():
+    arduino_q = Queue(maxsize=5)
+    recoilCorrection = Queue(maxsize=5)
     try:
-        ArduinoT = Thread(target=ArduinoThread)
+        ArduinoT = Thread(target=ArduinoThread, args=(arduino_q, recoilCorrection, loggar, SERIAL_PORT))
+        RecoilThread = Thread(target=recoil_master, args=(recoilCorrection, loggar,))
+        RecoilThread.setDaemon(True)
         ArduinoT.setDaemon(True)
         ArduinoT.start()
-        main()
+        loggar.info(f'Arduino Thread Started')
+        RecoilThread.start()
+        loggar.info(f'Recoil Master Thread Started')
+        object_detection(arduino_q)
 
     except Exception as e:
         print(e)
@@ -207,3 +222,7 @@ if __name__ == '__main__':
         cv2.destroyAllWindows()
         sct.close()
         exit(0)
+
+
+if __name__ == '__main__':
+    main()
