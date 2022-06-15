@@ -39,7 +39,8 @@ class Weapon:
 def recoil_master(recoilCorrection, logger):
     # WEAPONS #
     NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
-    Vandal = Weapon('Vandal', [(0, 0), (0, 10), (0, 10), (0, 10), (0, 10)], rateOfFire=109)
+    # Vandal = Weapon('Vandal', [(0,0), (6, 1), (13, 1), (30, 4), (58, 3), (68, 0),(96, 9),(110, 4),(121, 11)], rateOfFire=109)
+    Vandal = Weapon('Vandal', [(0,0), (6, 1), (13, 1), (30, 4), (58, 3), (68, 0)], rateOfFire=109)
     # INIT #
     firstShotTime = None
     shotCount = 0
@@ -83,18 +84,17 @@ def recoil_master(recoilCorrection, logger):
         # Empty the recoil var
         while not recoilCorrection.empty():
             recoilCorrection.get()
+
         if timeSinceFirstShot / weapon.rateOfFire > shotCount:
             shotCount += 1
-
-
             # Put the recoil correction for next bullet
-            newRecoilCorr = weapon.get_correction_by_shots(shotCount)
+            newRecoilCorr = 0, weapon.get_correction_by_shots(shotCount)[0]
 
             recoilCorrection.put(newRecoilCorr)
             logger.debug(f'\t[RM]RECOIL UPDATED {newRecoilCorr}')
         else:
             logger.debug(f'[RM]RECOIL UNCHANGED')
-            recoilCor = weapon.get_correction_by_shots(shotCount)
+            recoilCor = 0, weapon.get_correction_by_shots(shotCount)[0]
             recoilCorrection.put(recoilCor)
 
 
