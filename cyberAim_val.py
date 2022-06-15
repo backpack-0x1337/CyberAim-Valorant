@@ -6,6 +6,7 @@ import math
 import keyboard
 import serial
 import torch
+import logging
 import utils.aimbotV2
 from utils.capture_screen import grab_screen, sct, monitor
 from utils.arduino import *
@@ -37,6 +38,19 @@ DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
 DEBUG = True
 # MOVEMENT_MAX_PIXEL = 15
 TRIGGER_PIXEL = 5
+
+if DEBUG is True:
+    loggingStatus = logging.DEBUG
+else:
+    loggingStatus = logging.INFO
+
+logging.basicConfig(level=loggingStatus,
+                    format="%(asctime)s - %(levelname)s - %(message)s",
+                    handlers=[
+                        logging.FileHandler("logs/recoil_m.log"),
+                        logging.StreamHandler()
+                    ])
+
 
 ##################################/ Function /##############################################
 
@@ -87,7 +101,7 @@ def display_fps(frame, start):
 def ArduinoThread():
     arduino = serial.Serial(SERIAL_PORT, 115200, timeout=0)
 
-    print('Arduino is listening now')
+    logging.debug('Arduino is listening now')
     while True:
         start = time.time()
 
@@ -107,7 +121,7 @@ def main():
     model = torch.hub.load('ultralytics/yolov5', 'custom', path=PT_PATH, force_reload=FORCE_RELOAD)
     model.conf = CONFIDENCE_THRESHOLD
     model.max_det = MAX_DET
-    model.classes = 1 # head detection only
+    model.classes = 1  # head detection only
     mid_point_screen = int(ACTIVATION_RANGE / 2)
     aim_position = DEFAULT_AIM_LOCATION  # 0 is both 1 is head 2 is body
 
@@ -170,9 +184,6 @@ def main():
                     # arduino_q.put((0, 0, 2, 'trigger'))
                 else:
                     arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
-                # while not arduino_q.empty():
-                #     pass
-                # print(time.time() - start)
 
         if DEBUG:
             display_fps(frame, start)
@@ -182,9 +193,6 @@ def main():
             raise Exception
 
 
-# arduino_q = Queue(maxsize=0)
-# arduino_q = Queue(maxsize=1)
-# y_disable_q = Queue(maxsize=1)
 if __name__ == '__main__':
     arduino_q = Queue(maxsize=1)
     try:

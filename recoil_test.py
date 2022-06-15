@@ -33,11 +33,12 @@ class Weapon:
         return self.sprayPattern[shotNum]
 
 
-NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
-Vandal = Weapon('Vandal', [(0, 0), (50, 0), (50, 0), (50, 0), (50, 0)], rateOfFire=109)
-
-
 def recoil_master():
+
+    # WEAPONS #
+    NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
+    Vandal = Weapon('Vandal', [(0, 0), (50, 0), (50, 0), (50, 0), (50, 0)], rateOfFire=109)
+    # INIT #
     firstShotTime = None
     shotCount = 0
     weapon = NoWeapon
@@ -85,7 +86,7 @@ def recoil_master():
             recoilCorrection.put(newRecoilCorr)
             logging.info(f'\t[RM]RECOIL UPDATED {newRecoilCorr}')
         else:
-            logging.info(f'\t[RM]RECOIL UNCHANGED')
+            logging.debug(f'[RM]RECOIL UNCHANGED')
             recoilCor = weapon.get_correction_by_shots(shotCount)
             recoilCorrection.put(recoilCor)
 
