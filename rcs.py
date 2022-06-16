@@ -34,7 +34,7 @@ def recoil_master(recoilCorrection, logger):
     # INIT #
     firstShotTime = None
     shotCount = 0
-    weapons = [NoWeapon, Vandal, Phantom]
+    weapons = [NoWeapon, Vandal, Phantom, Spectre]
     weapon_i = 0
     while True:
         time.sleep(0.001)
