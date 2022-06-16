@@ -23,8 +23,8 @@ def recoil_master():
     # INIT #
     firstShotTime = None
     shotCount = 0
-    weapons = [NoWeapon, Vandal, Phantom]
-    weapon_i = 0
+    weapons = [NoWeapon, Vandal, Phantom, Spectre]
+    weapon_i = 3
 
     while True:
         time.sleep(0.001)
@@ -33,7 +33,7 @@ def recoil_master():
             if weapon_i >= len(weapons):
                 weapon_i = 0
             logging.info(f'[RM] Weapon: {weapons[weapon_i].name}')
-            weapon_sound = f'./sounds/{weapons[weapon_i].name}.wav'
+            weapon_sound = f'./sounds/{weapons[weapon_i].name}.m4a'
             playsound(weapon_sound)
 
         if win32api.GetAsyncKeyState(0x01) & 0x8000 == 0:
