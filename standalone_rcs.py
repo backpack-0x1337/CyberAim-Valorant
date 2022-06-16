@@ -33,7 +33,7 @@ def recoil_master():
             if weapon_i >= len(weapons):
                 weapon_i = 0
             logging.info(f'[RM] Weapon: {weapons[weapon_i].name}')
-            weapon_sound = f'./sounds/{weapons[weapon_i].name}.m4a'
+            weapon_sound = f'./sounds/{weapons[weapon_i].name}.wav'
             playsound(weapon_sound)
 
         if win32api.GetAsyncKeyState(0x01) & 0x8000 == 0:
