@@ -14,7 +14,7 @@ from tools.arduino import *
 from tools.util import *
 from queue import Queue
 from threading import Thread
-from recoil_test import recoil_master, Weapon
+from rcs import recoil_master, Weapon
 
 # from pynput.mouse import Listener
 # from pynput import mouse
@@ -37,7 +37,7 @@ PT_PATH = 'lib/val414-n.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = False
 DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
-DEBUG = True
+DEBUG = False
 # MOVEMENT_MAX_PIXEL = 15
 TRIGGER_PIXEL = 5
 
