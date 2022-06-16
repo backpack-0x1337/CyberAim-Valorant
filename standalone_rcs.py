@@ -1,13 +1,7 @@
 import math
 import time
-
-# import serial
 from queue import Queue
 from threading import Thread
-# from pynput.mouse import Listener
-# from pynput import mouse
-# from pynput.mouse import Button, Controller
-# from mouse import mouseObj
 import keyboard
 import serial
 import win32api
@@ -24,8 +18,6 @@ logging.basicConfig(level=logging.DEBUG,
                     ])
 
 
-# https://github.com/gggfreak2003/PyHook3/blob/master/example.py
-
 class Weapon:
     def __init__(self, name, sprayPattern, rateOfFire):
         self.name = name
@@ -33,25 +25,22 @@ class Weapon:
         self.rateOfFire = 1000 / rateOfFire
 
     def get_correction_by_shots(self, shotNum):
-        if shotNum >= 11:
-            shotNum = 0
-        elif shotNum >= len(self.sprayPattern):
+        if shotNum >= len(self.sprayPattern):
             shotNum = len(self.sprayPattern) - 1
 
         return self.sprayPattern[shotNum]
 
 
 def recoil_master():
-    # WEAPONS #
+    # WEAPONS ADD YOUR WEAPON HERE#
     NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
-    # Vandal = Weapon('Vandal', [(0,0), (6, 1), (13, 1), (30, 4), (58, 3), (68, 0),(96, 9),(110, 4),(121, 11)], rateOfFire=109)
     Vandal = Weapon('Vandal',
-                    [(0, 0), (6, -1), (7, -1), (13, -4), (28, -3), (30, -1), (28, 9), (30, -4), (30, -11), (30, 0)],
+                    [(0, 0), (6, -1), (7, -1), (20, -4), (28, -3), (40, -1), (60, 0), (60, -4), (60, -11), (0, 0)],
+                    # [(0, 0), (0, -1), (0, -1), (26, -4), (28, -3), (30, -1), (28, 9), (30, -4), (30, -11), (40, 0)],
                     rateOfFire=9.75)
     Phantom = Weapon('Phantom',
-                     [(0, 0), (6, -1), (7, -1), (17, -1), (28, 0), (30, -1), (28, 0), (25, -4), (25, 0), (25, 0)],
+                     [(0, 0), (0, -1), (0, -1), (30, -1), (28, 0), (30, -1), (28, 0), (25, -4), (25, 0), (25, 0)],
                      rateOfFire=11)
-    # Vandal = Weapon('Vandal', [(0,0), (6,-1), (15,-4), (20,-4),(30,-9), (30,0)], rateOfFire=9.75)
     # INIT #
     firstShotTime = None
     shotCount = 0
@@ -91,7 +80,6 @@ def recoil_master():
         timeSinceFirstShot = (time.time_ns() - firstShotTime) // 1000000
         # logging.debug(f'[RM]timeSinceFirstShot:{timeSinceFirstShot}, Shots: {shotCount}')
         # if it's new shot time
-
         if math.ceil(timeSinceFirstShot / weapons[weapon_i].rateOfFire) >= shotCount:
             shotCount += 1
             # Put the recoil correction for next bullet

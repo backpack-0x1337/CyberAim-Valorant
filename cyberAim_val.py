@@ -37,7 +37,7 @@ PT_PATH = 'lib/val414-n.pt'
 FORCE_RELOAD = False
 ALWAYS_ON = False
 DEFAULT_AIM_LOCATION = 'enemyHead'  # 0 is both 1 is head 2 is body
-DEBUG = False
+DEBUG = True
 # MOVEMENT_MAX_PIXEL = 15
 TRIGGER_PIXEL = 5
 
@@ -46,12 +46,12 @@ if DEBUG is True:
 else:
     loggingStatus = logging.INFO
 
-# logging.basicConfig(level=loggingStatus,
-#                     format="%(asctime)s - %(levelname)s - %(message)s",
-#                     handlers=[
-#                         logging.FileHandler("logs/recoil_m.log"),
-#                         logging.StreamHandler()
-#                     ])
+logging.basicConfig(level=loggingStatus,
+                    format="%(asctime)s - %(levelname)s - %(message)s",
+                    handlers=[
+                        logging.FileHandler("logs/recoil_m.log"),
+                        logging.StreamHandler()
+                    ])
 
 loggar = logging.getLogger(__name__)
 loggar.level = loggingStatus
@@ -185,14 +185,14 @@ def object_detection(arduino_q):
 
                 if closestObjectDistance < MAGNET_PIXEL:
                     arduino_q.put((difX, difY, 1, 'aimbot'))
-                    loggar.debug(
-                        f'[MAIN] AIMBOT put to Queue Cords:{difX, difY}, Smooth{1},'
-                        f' Target Distance:{closestObjectDistance}')
+                    # loggar.debug(
+                    #     f'[MAIN] AIMBOT put to Queue Cords:{difX, difY}, Smooth{1},'
+                    #     f' Target Distance:{closestObjectDistance}')
                 else:
                     arduino_q.put((difX, difY, AIM_SMOOTH, 'aimbot'))
-                    loggar.debug(
-                        f'[MAIN] AIMBOT put to Queue Cords:{difX, difY} Smooth{AIM_SMOOTH},'
-                        f' Target Distance:{closestObjectDistance}')
+                    # loggar.debug(
+                    #     f'[MAIN] AIMBOT put to Queue Cords:{difX, difY} Smooth{AIM_SMOOTH},'
+                    #     f' Target Distance:{closestObjectDistance}')
 
         if DEBUG:
             display_fps(frame, start)

@@ -33,7 +33,7 @@ class Weapon:
     def __init__(self, name, sprayPattern, rateOfFire):
         self.name = name
         self.sprayPattern = sprayPattern
-        self.rateOfFire = rateOfFire
+        self.rateOfFire = 1000 /rateOfFire
 
     def get_correction_by_shots(self, shotNum):
         if shotNum >= 11:
@@ -48,7 +48,7 @@ def recoil_master(recoilCorrection, logger):
     # WEAPONS #
     NoWeapon = Weapon('NoWeapon', [(0, 0)], rateOfFire=1337)
     # Vandal = Weapon('Vandal',[(0, 0), (1, 0), (6, -1), (7, -1), (13, -4), (28, -3), (30, -1), (28, 9), (30, -4), (30, -11), (45, 0)],rateOfFire=9.75)
-    Vandal = Weapon('Vandal',[(0, 0), (1,0),(1, -1), (14, -1), (13, -4), (28, -3), (30, -1), (28, 9), (30, -4), (30, -11), (45, 0)],rateOfFire=9.75)
+    Vandal = Weapon('Vandal',[(0, 0), (6, -1), (7, -1), (13, -4), (28, -3), (30, -1), (28, 9), (30, -4), (30, -11), (30, 0)],rateOfFire=9.75)
     Phantom = Weapon('Phantom',
                      [(0, 0), (1,0),(1, -1),(6, -1), (14, -1), (17, -1), (28, 0), (30, -1), (28, 0), (25, -4), (25, 0), (25, 0)],
                      rateOfFire=11)
@@ -85,7 +85,7 @@ def recoil_master(recoilCorrection, logger):
             # First shot register time
             if firstShotTime is None:
                 firstShotTime = time.time_ns()
-                shotCount = 0
+                shotCount = 1
                 continue
 
         # Main Loop mouse button is clicked
@@ -101,15 +101,16 @@ def recoil_master(recoilCorrection, logger):
         if math.ceil(timeSinceFirstShot / weapons[weapon_i].rateOfFire) >= shotCount:
             shotCount += 1
             # Put the recoil correction for next bullet
-            logging.debug(f'[RM]timeSinceFirstShot:{timeSinceFirstShot}, Shots: {shotCount}')
+
+            logger.debug(f'[RM]timeSinceFirstShot:{timeSinceFirstShot}, Shots: {shotCount}, calShots: {math.ceil(timeSinceFirstShot / weapons[weapon_i].rateOfFire)}')
             recoilCor = weapons[weapon_i].get_correction_by_shots(shotCount)[1], weapons[weapon_i].get_correction_by_shots(shotCount)[0]
             recoilCorrection.put(recoilCor)
-            logging.debug(f'\t[RM] recoilCor {recoilCor}')
+            logger.debug(f'[RM] recoilCor {recoilCor}')
         else:
-            logger.debug(f'[RM]RECOIL UNCHANGED')
+            # logger.debug(f'[RM]RECOIL UNCHANGED')
             recoilCor = weapons[weapon_i].get_correction_by_shots(shotCount)[1], weapons[weapon_i].get_correction_by_shots(shotCount)[0]
-            # recoilCorrection.put(recoilCor)
-            recoilCorrection.put((0,0))
+            recoilCorrection.put(recoilCor)
+            # recoilCorrection.put((0,0))
 
 
 # def main():
