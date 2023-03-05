@@ -4,6 +4,9 @@ Put image recognition AI in real world gaming application.
 # Valorant AI Assistant
 An aimbot/aim assistant for the game Valorant using image recognition techniques. The program uses YOLOv5 Object Detection Algorithm to locate enemies on the screen and smooths the aiming path by adding stops and using randomization techniques. The program then feeds the smoothed aiming path to an external Arduino device, which acts as an external mouse and was not detectable by Vanguard anti-cheat software.
 
+https://user-images.githubusercontent.com/71382503/161569504-6cbab1fe-8765-4eb9-8515-675195c8bfd0.mp4
+https://user-images.githubusercontent.com/71382503/161571861-78311cba-54be-45d1-8848-401c04e82b65.mp4
+
 #Technologies Used:
 - YOLOv5
 - Python
@@ -28,9 +31,4 @@ I am highlighting proficiency in creating custom image reconition datasets and s
 Disclaimer
 This software is for educational purpose and may use this code to learn to build image recognition application.
 
-https://user-images.githubusercontent.com/71382503/161569504-6cbab1fe-8765-4eb9-8515-675195c8bfd0.mp4
-
-
-
-https://user-images.githubusercontent.com/71382503/161571861-78311cba-54be-45d1-8848-401c04e82b65.mp4
 
